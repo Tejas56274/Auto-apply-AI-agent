@@ -8,7 +8,7 @@ from sheets_logger import log_to_google_sheet
 import PyPDF2
 
 # Executive corporate configuration mirroring premium SaaS dashboards
-st.set_page_config(page_title="TalentStream AI | Enterprise Recruitment Suite", page_icon="💼", layout="wide")
+st.set_page_config(page_title="Auto Apply AI Agent", page_icon="💼", layout="wide")
 
 # 🔥 PREMIUM DARK GLASSMORPHISM UI/UX DESIGN SYSTEM (SaaS Vibe)
 st.markdown("""

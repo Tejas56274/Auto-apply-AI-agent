@@ -3,6 +3,7 @@ import time
 import PyPDF2
 import pandas as pd
 import plotly.express as px
+from urllib.parse import quote
 
 # Protobuf compatibility fix
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -25,8 +26,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("TalentStream AI")
-st.caption("Automated Recruitment Pipeline & Deep Learning Match Engine")
+# 1. Title Updated
+st.markdown("<h1 style='margin-bottom: 5px;'>Auto Apply AI Agent</h1>", unsafe_allow_html=True)
+st.markdown("<p style='color: #94a3b8; font-size: 15px; margin-bottom: 25px;'>Automated Recruitment Pipeline & Deep Learning Match Engine</p>", unsafe_allow_html=True)
 
 # Sidebar Operational Controls
 st.sidebar.markdown("### System Parameters")
@@ -44,12 +46,11 @@ with col_right:
     st.markdown("### Platform Scope")
     st.write("Dynamic job matching engine fetching real-time market data directly from targeted endpoints.")
 
-# Action Pipeline Execution Control
-if st.button("Execute Core Evaluation Pipeline"):
+# 2. Button Text Updated to "Fetch Role"
+if st.button("Fetch Role"):
     if uploaded_file is None:
         st.error("System Exception: Upload a target PDF profile first.")
     else:
-        # Extract Resume Text
         resume_text = ""
         try:
             pdf_reader = PyPDF2.PdfReader(uploaded_file)
@@ -63,7 +64,6 @@ if st.button("Execute Core Evaluation Pipeline"):
         if not resume_text.strip():
             st.error("Profile Extraction Failure: Parsed text was empty.")
         else:
-            # 🚀 LIVE FETCHING STEP (Fixed)
             with st.spinner("Fetching Live Opportunities..."):
                 scaled_job_directory = fetch_live_jobs(query=search_profile, location=job_location)
 
@@ -88,13 +88,22 @@ if st.button("Execute Core Evaluation Pipeline"):
                     qualified_count += 1
                     log_to_google_sheet(job["title"], job["company"], score, status="Applied")
                 
+                # Link Fallback Safety (Prevents self-redirection to localhost)
+                raw_url = job.get("url")
+                if not raw_url or raw_url == "#" or not raw_url.startswith("http"):
+                    search_query = quote(f"{job['title']} {job['company']} apply jobs")
+                    job_url = f"https://www.google.com/search?q={search_query}"
+                else:
+                    job_url = raw_url
+                
                 evaluated_jobs.append({
                     "Job Title": job["title"],
                     "Organization": job["company"],
                     "Location": job["location"],
                     "ATS Match Value": f"{percentage_score:.2f}%",
                     "Raw_Score": percentage_score,
-                    "Execution Status": "Logged to Ledger" if action == "Synchronized to Cloud" else "Filtered Out"
+                    "Execution Status": "Logged to Ledger" if action == "Synchronized to Cloud" else "Filtered Out",
+                    "Apply_Link": job_url
                 })
                 
                 time.sleep(0.2)
@@ -102,7 +111,17 @@ if st.button("Execute Core Evaluation Pipeline"):
                 
             status_container.empty()
             
-            # Results Summary
+            # Results Table with Dynamic External Links
             df_display = pd.DataFrame(evaluated_jobs)
             st.markdown("### Recruitment Pipeline Synchronization Ledger")
-            st.dataframe(df_display[["Job Title", "Organization", "Location", "ATS Match Value", "Execution Status"]], use_container_width=True)
+            
+            st.dataframe(
+                df_display[["Job Title", "Organization", "Location", "ATS Match Value", "Execution Status", "Apply_Link"]],
+                column_config={
+                    "Apply_Link": st.column_config.LinkColumn(
+                        "Apply Link", 
+                        display_text="Apply Now ↗"
+                    )
+                },
+                use_container_width=True
+            )

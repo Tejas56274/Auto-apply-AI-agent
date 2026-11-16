@@ -72,56 +72,59 @@ if st.button("Fetch Role"):
             evaluated_jobs = []
             qualified_count = 0
             total_scanned = len(scaled_job_directory)
-            
-            ui_progress = st.progress(0)
-            status_container = st.empty()
-            
-            for idx, job in enumerate(scaled_job_directory):
-                status_container.markdown(f"Processing Match Model: **{job['title']}** at {job['company']}")
+
+            if total_scanned == 0:
+                st.warning("No job listings found for the given criteria. Adjust the search parameters and try again.")
+            else:
+                ui_progress = st.progress(0)
+                status_container = st.empty()
+
+                for idx, job in enumerate(scaled_job_directory):
+                    status_container.markdown(f"Processing Match Model: **{job['title']}** at {job['company']}")
+                    
+                    score = calculate_ats_match_score(resume_text, job["desc"])
+                    percentage_score = score * 100
+                    
+                    action = "Below Threshold"
+                    if percentage_score >= target_threshold:
+                        action = "Synchronized to Cloud"
+                        qualified_count += 1
+                        log_to_google_sheet(job["title"], job["company"], score, status="Applied")
+                    
+                    # Link Fallback Safety (Prevents self-redirection to localhost)
+                    raw_url = job.get("url")
+                    if not raw_url or raw_url == "#" or not raw_url.startswith("http"):
+                        search_query = quote(f"{job['title']} {job['company']} apply jobs")
+                        job_url = f"https://www.google.com/search?q={search_query}"
+                    else:
+                        job_url = raw_url
+                    
+                    evaluated_jobs.append({
+                        "Job Title": job["title"],
+                        "Organization": job["company"],
+                        "Location": job["location"],
+                        "ATS Match Value": f"{percentage_score:.2f}%",
+                        "Raw_Score": percentage_score,
+                        "Execution Status": "Logged to Ledger" if action == "Synchronized to Cloud" else "Filtered Out",
+                        "Apply_Link": job_url
+                    })
+                    
+                    time.sleep(0.2)
+                    ui_progress.progress((idx + 1) / total_scanned)
                 
-                score = calculate_ats_match_score(resume_text, job["desc"])
-                percentage_score = score * 100
+                status_container.empty()
                 
-                action = "Below Threshold"
-                if percentage_score >= target_threshold:
-                    action = "Synchronized to Cloud"
-                    qualified_count += 1
-                    log_to_google_sheet(job["title"], job["company"], score, status="Applied")
+                # Results Table with Dynamic External Links
+                df_display = pd.DataFrame(evaluated_jobs)
+                st.markdown("### Recruitment Pipeline Synchronization Ledger")
                 
-                # Link Fallback Safety (Prevents self-redirection to localhost)
-                raw_url = job.get("url")
-                if not raw_url or raw_url == "#" or not raw_url.startswith("http"):
-                    search_query = quote(f"{job['title']} {job['company']} apply jobs")
-                    job_url = f"https://www.google.com/search?q={search_query}"
-                else:
-                    job_url = raw_url
-                
-                evaluated_jobs.append({
-                    "Job Title": job["title"],
-                    "Organization": job["company"],
-                    "Location": job["location"],
-                    "ATS Match Value": f"{percentage_score:.2f}%",
-                    "Raw_Score": percentage_score,
-                    "Execution Status": "Logged to Ledger" if action == "Synchronized to Cloud" else "Filtered Out",
-                    "Apply_Link": job_url
-                })
-                
-                time.sleep(0.2)
-                ui_progress.progress((idx + 1) / total_scanned)
-                
-            status_container.empty()
-            
-            # Results Table with Dynamic External Links
-            df_display = pd.DataFrame(evaluated_jobs)
-            st.markdown("### Recruitment Pipeline Synchronization Ledger")
-            
-            st.dataframe(
-                df_display[["Job Title", "Organization", "Location", "ATS Match Value", "Execution Status", "Apply_Link"]],
-                column_config={
-                    "Apply_Link": st.column_config.LinkColumn(
-                        "Apply Link", 
-                        display_text="Apply Now ↗"
-                    )
-                },
-                use_container_width=True
-            )
+                st.dataframe(
+                    df_display[["Job Title", "Organization", "Location", "ATS Match Value", "Execution Status", "Apply_Link"]],
+                    column_config={
+                        "Apply_Link": st.column_config.LinkColumn(
+                            "Apply Link", 
+                            display_text="Apply Now ↗"
+                        )
+                    },
+                    use_container_width=True
+                )

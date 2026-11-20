@@ -2,7 +2,6 @@ import os
 import time
 import PyPDF2
 import pandas as pd
-import plotly.express as px
 from urllib.parse import quote
 
 # Protobuf compatibility fix

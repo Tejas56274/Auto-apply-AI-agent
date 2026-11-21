@@ -4,9 +4,22 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 
-def vectorize_texts(resume_text, job_description):
+def vectorize_texts(resume_text: str, job_description: str):
     """
-    Converts raw text profiles into mathematical high-dimensional vectors using TF-IDF.
+    Converts raw text profiles into mathematical high‑dimensional vectors using TF‑IDF.
+
+    Parameters
+    ----------
+    resume_text: str
+        The full text extracted from the candidate's resume.
+    job_description: str
+        The description of the job posting.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the resume vector, the job description vector, and the fitted
+        ``TfidfVectorizer`` instance.
     """
     vectorizer = TfidfVectorizer(max_features=500, stop_words='english')
     corpus = [resume_text, job_description]
@@ -17,9 +30,19 @@ def vectorize_texts(resume_text, job_description):
     
     return resume_vector, job_vector, vectorizer
 
-def build_mlp_model(input_dim):
+def build_mlp_model(input_dim: int) -> Sequential:
     """
-    Compiles a Multi-Layer Perceptron (Neural Network) for deep semantic matching logic.
+    Compiles a Multi‑Layer Perceptron (Neural Network) for deep semantic matching logic.
+
+    Parameters
+    ----------
+    input_dim: int
+        Dimensionality of the input feature vector.
+
+    Returns
+    -------
+    tensorflow.keras.models.Sequential
+        An untrained MLP model ready for inference.
     """
     model = Sequential([
         Dense(128, activation='relu', input_dim=input_dim),
@@ -33,10 +56,30 @@ def build_mlp_model(input_dim):
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-def calculate_ats_match_score(resume_text, job_description):
-    """
-    Processes inputs through deep learning layers and applies semantic keyword biasing
-    to ensure precise and realistic threshold differentiation during demo presentations.
+def calculate_ats_match_score(resume_text: str, job_description: str) -> float:
+    """Calculate a match score between a resume and a job description.
+
+    The function performs three main steps:
+    1. **Vectorisation** – Convert both texts into TF‑IDF vectors.
+    2. **Neural inference** – Feed the concatenated vectors into a lightweight MLP
+       (created on‑the‑fly) to obtain a base sigmoid score.
+    3. **Keyword biasing** – Adjust the base score according to the presence of a set
+       of domain‑specific keywords, then clamp the final value to the ``[0.0, 1.0]`` range.
+
+    This approach keeps the demo deterministic while still showcasing a deep‑learning
+    style pipeline.
+
+    Parameters
+    ----------
+    resume_text: str
+        Extracted plain‑text content of the candidate's resume.
+    job_description: str
+        Plain‑text description of the job posting.
+
+    Returns
+    -------
+    float
+        The final ATS match score, rounded to four decimal places.
     """
     # 1. Run the base Deep Learning MLP vector prediction
     resume_vec, job_vec, vectorizer = vectorize_texts(resume_text, job_description)

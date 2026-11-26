@@ -67,6 +67,12 @@ if st.button("Fetch Role"):
             with st.spinner("Fetching Live Opportunities..."):
                 scaled_job_directory = fetch_live_jobs(query=search_profile, location=job_location)
 
+            # New safeguard: handle empty result sets gracefully
+            if not scaled_job_directory:
+                st.warning("No job listings were retrieved. Please adjust your search criteria or try again later.")
+                # Skip further processing when there are no jobs
+                st.stop()
+
             st.success(f"Successfully fetched {len(scaled_job_directory)} live listings for '{search_profile}'!")
 
             evaluated_jobs = []
